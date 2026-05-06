@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Professional Lexical Analyzer</title>
+
+<!-- MONACO EDITOR -->
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+
+<!-- CHART JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    background:#0d1117;
+    color:white;
+    font-family:Consolas, monospace;
+}
+
+/* TOP BAR */
+
+.topbar{
+    height:70px;
+    background:#161b22;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 25px;
+    border-bottom:2px solid #30363d;
+}
+
+.topbar h1{
+    color:#58a6ff;
+    font-size:40px;
+}
+
+/* BUTTONS */
+
+.top-buttons{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+button{
+    padding:10px 20px;
+    border:none;
+    border-radius:6px;
+    background:#238636;
+    color:white;
+    cursor:pointer;
+    font-size:15px;
+    transition:0.3s;
+}
+
+button:hover{
+    background:#2ea043;
+}
+
+/* FILE BUTTON */
+
+.upload-btn{
+    padding:10px 20px;
+    border:none;
+    border-radius:6px;
+    background:#238636;
+    color:white;
+    cursor:pointer;
+    font-size:15px;
+    display:inline-block;
+    transition:0.3s;
+}
+
+.upload-btn:hover{
+    background:#2ea043;
+}
+
+input[type=file]{
+    display:none;
+}
+
+/* MAIN */
+
+.main{
+    display:flex;
+    height:calc(100vh - 70px);
+}
+
+/* SIDEBAR */
+
+.sidebar{
+    width:220px;
+    background:#161b22;
+    border-right:2px solid #30363d;
+    padding-top:20px;
+}
+
+.sidebar h2{
+    text-align:center;
+    margin-bottom:20px;
+    color:#58a6ff;
+}
+
+.tab{
+    padding:15px;
+    cursor:pointer;
+    border-bottom:1px solid #30363d;
+    transition:0.3s;
+}
+
+.tab:hover{
+    background:#21262d;
+}
+
+/* CONTENT */
+
+.content{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+}
+
+/* EDITOR */
+
+.editor-section{
+    height:45%;
+    border-bottom:2px solid #30363d;
+}
+
+#editor{
+    width:100%;
+    height:100%;
+}
+
+/* OUTPUT */
+
+.output-section{
+    flex:1;
+    display:flex;
+    overflow:hidden;
+}
+
+/* PANELS */
+
+.panel{
+    flex:1;
+    padding:15px;
+    overflow:auto;
+    border-right:1px solid #30363d;
+}
+
+.panel h2{
+    margin-bottom:15px;
+    color:#58a6ff;
+}
+
+/* TABLE */
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th, td{
+    border:1px solid #30363d;
+    padding:10px;
+    text-align:center;
+}
+
+th{
+    background:#21262d;
+}
+
+tr:nth-child(even){
+    background:#161b22;
+}
+
+/* ERROR */
+
+.error{
+    color:#ff7b72;
+    margin-bottom:10px;
+}
+
+/* STATS */
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:15px;
+}
+
+.card{
+    background:#161b22;
+    padding:20px;
+    border-radius:10px;
+    text-align:center;
+    border:1px solid #30363d;
+}
+
+.card h3{
+    color:#58a6ff;
+    margin-bottom:10px;
+    font-size:30px;
+}
+
+/* FOOTER */
+
+.footer{
+    background:#161b22;
+    padding:10px;
+    text-align:center;
+    border-top:1px solid #30363d;
+    color:gray;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- TOPBAR -->
+
+<div class="topbar">
+
+    <h1>Professional Lexical Analyzer</h1>
+
+    <div class="top-buttons">
+
+        <!-- FILE UPLOAD -->
+
+        <label for="fileUpload" class="upload-btn">
+            Upload File
+        </label>
+
+        <input type="file"
+               id="fileUpload"
+               accept=".txt,.c,.cpp,.java">
+
+        <!-- ANALYZE BUTTON -->
+
+        <button onclick="analyze()">
+            Analyze Code
+        </button>
+
+    </div>
+
+</div>
+
+<!-- MAIN -->
+
+<div class="main">
+
+    <!-- SIDEBAR -->
+
+    <div class="sidebar">
+
+        <h2>Compiler</h2>
+
+        <div class="tab">TOKENS</div>
+        <div class="tab">SYMBOL TABLE</div>
+        <div class="tab">ERRORS</div>
+        <div class="tab">STATISTICS</div>
+
+    </div>
+
+    <!-- CONTENT -->
+
+    <div class="content">
+
+        <!-- EDITOR -->
+
+        <div class="editor-section">
+            <div id="editor"></div>
+        </div>
+
+        <!-- OUTPUT -->
+
+        <div class="output-section">
+
+            <!-- TOKEN TABLE -->
+
+            <div class="panel">
+
+                <h2>Tokens</h2>
+
+                <table id="tokenTable">
+
+                    <thead>
+                        <tr>
+                            <th>Line</th>
+                            <th>Type</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+
+                    <tbody></tbody>
+
+                </table>
+
+            </div>
+
+            <!-- SYMBOL TABLE -->
+
+            <div class="panel">
+
+                <h2>Symbol Table</h2>
+
+                <table id="symbolTable">
+
+                    <thead>
+                        <tr>
+                            <th>Identifier</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+
+                    <tbody></tbody>
+
+                </table>
+
+            </div>
+
+            <!-- ERRORS -->
+
+            <div class="panel">
+
+                <h2>Errors</h2>
+
+                <div id="errors"></div>
+
+            </div>
+
+            <!-- STATISTICS -->
+
+            <div class="panel">
+
+                <h2>Statistics</h2>
+
+                <div class="stats">
+
+                    <div class="card">
+                        <h3 id="keywordCount">0</h3>
+                        <p>Keywords</p>
+                    </div>
+
+                    <div class="card">
+                        <h3 id="identifierCount">0</h3>
+                        <p>Identifiers</p>
+                    </div>
+
+                    <div class="card">
+                        <h3 id="numberCount">0</h3>
+                        <p>Numbers</p>
+                    </div>
+
+                    <div class="card">
+                        <h3 id="operatorCount">0</h3>
+                        <p>Operators</p>
+                    </div>
+
+                </div>
+
+                <br>
+
+                <canvas id="chart"></canvas>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- FOOTER -->
+
+<div class="footer">
+    Mini Compiler Front-End Simulator | HTML CSS JavaScript
+</div>
+
+<script>
+
+/* MONACO EDITOR */
+
+let editor;
+
+require.config({
+    paths:{
+        vs:'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs'
+    }
+});
+
+require(['vs/editor/editor.main'], function(){
+
+    editor = monaco.editor.create(
+        document.getElementById('editor'),
+
+        {
+
+        value:
+`int a = 10;
+
+float b = 5.5;
+
+// sample condition
+
+if(a > 5){
+    a = a + 1;
+}`,
+
+        language:'cpp',
+        theme:'vs-dark',
+        automaticLayout:true
+
+    });
+
+});
+
+/* FILE UPLOAD */
+
+document.getElementById("fileUpload")
+.addEventListener("change", function(e){
+
+    let file = e.target.files[0];
+
+    if(file){
+
+        let reader = new FileReader();
+
+        reader.onload = function(event){
+
+            editor.setValue(event.target.result);
+
+        }
+
+        reader.readAsText(file);
+
+    }
+
+});
+
+/* ANALYZE FUNCTION */
+
+function analyze(){
+
+    let code = editor.getValue();
+
+    let tokenBody =
+        document.querySelector("#tokenTable tbody");
+
+    let symbolBody =
+        document.querySelector("#symbolTable tbody");
+
+    let errors =
+        document.getElementById("errors");
+
+    tokenBody.innerHTML = "";
+    symbolBody.innerHTML = "";
+    errors.innerHTML = "";
+
+    let patterns = [
+
+        {type:"KEYWORD",
+         regex:/^(int|float|if|else|while|return)\b/},
+
+        {type:"NUMBER",
+         regex:/^\d+(\.\d+)?/},
+
+        {type:"STRING",
+         regex:/^".*?"/},
+
+        {type:"COMMENT",
+         regex:/^(\/\/.*|\/\*[\s\S]*?\*\/)/},
+
+        {type:"IDENTIFIER",
+         regex:/^[a-zA-Z_][a-zA-Z0-9_]*/},
+
+        {type:"OPERATOR",
+         regex:/^(==|!=|<=|>=|&&|\|\||[+\-*/=<>])/},
+
+        {type:"DELIMITER",
+         regex:/^[;,(){}]/},
+
+        {type:"WHITESPACE",
+         regex:/^\s+/}
+
+    ];
+
+    let keywordCount = 0;
+    let identifierCount = 0;
+    let numberCount = 0;
+    let operatorCount = 0;
+
+    let identifiers = new Set();
+
+    let lines = code.split("\n");
+
+    lines.forEach((line, lineNumber)=>{
+
+        let current = line;
+
+        while(current.length > 0){
+
+            let matchFound = false;
+
+            for(let p of patterns){
+
+                let match = current.match(p.regex);
+
+                if(match){
+
+                    let value = match[0];
+
+                    if(
+                        p.type !== "WHITESPACE" &&
+                        p.type !== "COMMENT"
+                    ){
+
+                        tokenBody.innerHTML += `
+                        <tr>
+                            <td>${lineNumber + 1}</td>
+                            <td>${p.type}</td>
+                            <td>${value}</td>
+                        </tr>
+                        `;
+
+                        if(p.type==="KEYWORD")
+                            keywordCount++;
+
+                        if(p.type==="IDENTIFIER")
+                            identifierCount++;
+
+                        if(p.type==="NUMBER")
+                            numberCount++;
+
+                        if(p.type==="OPERATOR")
+                            operatorCount++;
+
+                        /* SYMBOL TABLE */
+
+                        if(
+                            p.type==="IDENTIFIER" &&
+                            !identifiers.has(value)
+                        ){
+
+                            identifiers.add(value);
+
+                            symbolBody.innerHTML += `
+                            <tr>
+                                <td>${value}</td>
+                                <td>Variable</td>
+                            </tr>
+                            `;
+                        }
+
+                    }
+
+                    current =
+                        current.slice(value.length);
+
+                    matchFound = true;
+
+                    break;
+
+                }
+
+            }
+
+            /* INVALID TOKEN */
+
+            if(!matchFound){
+
+                errors.innerHTML += `
+                <div class="error">
+                    Invalid Symbol '${current[0]}'
+                    at line ${lineNumber + 1}
+                </div>
+                `;
+
+                current = current.slice(1);
+
+            }
+
+        }
+
+    });
+
+    /* NO ERRORS */
+
+    if(errors.innerHTML===""){
+        errors.innerHTML = "No Lexical Errors";
+    }
+
+    /* UPDATE COUNTS */
+
+    document.getElementById("keywordCount")
+    .innerText = keywordCount;
+
+    document.getElementById("identifierCount")
+    .innerText = identifierCount;
+
+    document.getElementById("numberCount")
+    .innerText = numberCount;
+
+    document.getElementById("operatorCount")
+    .innerText = operatorCount;
+
+    /* CHART */
+
+    let ctx = document.getElementById("chart");
+
+    new Chart(ctx, {
+
+        type:'bar',
+
+        data:{
+
+            labels:[
+                'Keywords',
+                'Identifiers',
+                'Numbers',
+                'Operators'
+            ],
+
+            datasets:[{
+
+                label:'Token Count',
+
+                data:[
+                    keywordCount,
+                    identifierCount,
+                    numberCount,
+                    operatorCount
+                ]
+
+            }]
+        }
+
+    });
+
+}
+
+</script>
+
+</body>
+</html>
