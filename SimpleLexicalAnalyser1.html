@@ -1,658 +1,344 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Professional Lexical Analyzer</title>
-
-<!-- MONACO EDITOR -->
-<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
-
-<!-- CHART JS -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
-
-body{
-    background:#0d1117;
-    color:white;
-    font-family:Consolas, monospace;
-}
-
-/* TOP BAR */
-
-.topbar{
-    height:70px;
-    background:#161b22;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 25px;
-    border-bottom:2px solid #30363d;
-}
-
-.topbar h1{
-    color:#58a6ff;
-    font-size:40px;
-}
-
-/* BUTTONS */
-
-.top-buttons{
-    display:flex;
-    align-items:center;
-    gap:10px;
-}
-
-button{
-    padding:10px 20px;
-    border:none;
-    border-radius:6px;
-    background:#238636;
-    color:white;
-    cursor:pointer;
-    font-size:15px;
-    transition:0.3s;
-}
-
-button:hover{
-    background:#2ea043;
-}
-
-/* FILE BUTTON */
-
-.upload-btn{
-    padding:10px 20px;
-    border:none;
-    border-radius:6px;
-    background:#238636;
-    color:white;
-    cursor:pointer;
-    font-size:15px;
-    display:inline-block;
-    transition:0.3s;
-}
-
-.upload-btn:hover{
-    background:#2ea043;
-}
-
-input[type=file]{
-    display:none;
-}
-
-/* MAIN */
-
-.main{
-    display:flex;
-    height:calc(100vh - 70px);
-}
-
-/* SIDEBAR */
-
-.sidebar{
-    width:220px;
-    background:#161b22;
-    border-right:2px solid #30363d;
-    padding-top:20px;
-}
-
-.sidebar h2{
-    text-align:center;
-    margin-bottom:20px;
-    color:#58a6ff;
-}
-
-.tab{
-    padding:15px;
-    cursor:pointer;
-    border-bottom:1px solid #30363d;
-    transition:0.3s;
-}
-
-.tab:hover{
-    background:#21262d;
-}
-
-/* CONTENT */
-
-.content{
-    flex:1;
-    display:flex;
-    flex-direction:column;
-}
-
-/* EDITOR */
-
-.editor-section{
-    height:45%;
-    border-bottom:2px solid #30363d;
-}
-
-#editor{
-    width:100%;
-    height:100%;
-}
-
-/* OUTPUT */
-
-.output-section{
-    flex:1;
-    display:flex;
-    overflow:hidden;
-}
-
-/* PANELS */
-
-.panel{
-    flex:1;
-    padding:15px;
-    overflow:auto;
-    border-right:1px solid #30363d;
-}
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.regex.*;
 
-.panel h2{
-    margin-bottom:15px;
-    color:#58a6ff;
-}
+public class AILexicalAnalyzer extends JFrame {
 
-/* TABLE */
+    JTextArea codeArea;
+    JTextArea errorArea;
+    JTextArea correctedArea;
 
-table{
-    width:100%;
-    border-collapse:collapse;
-}
+    JTable tokenTable;
+    DefaultTableModel tokenModel;
 
-th, td{
-    border:1px solid #30363d;
-    padding:10px;
-    text-align:center;
-}
+    JLabel keywordLabel;
+    JLabel identifierLabel;
+    JLabel numberLabel;
+    JLabel operatorLabel;
 
-th{
-    background:#21262d;
-}
+    int keywordCount = 0;
+    int identifierCount = 0;
+    int numberCount = 0;
+    int operatorCount = 0;
 
-tr:nth-child(even){
-    background:#161b22;
-}
+    public AILexicalAnalyzer() {
 
-/* ERROR */
+        setTitle("AI Based Lexical Analyzer");
+        setSize(1400, 800);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
 
-.error{
-    color:#ff7b72;
-    margin-bottom:10px;
-}
+        // TOP PANEL
 
-/* STATS */
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBackground(new Color(22, 27, 34));
 
-.stats{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:15px;
-}
+        JLabel title = new JLabel("AI Based Lexical Analyzer");
+        title.setForeground(new Color(88, 166, 255));
+        title.setFont(new Font("Consolas", Font.BOLD, 30));
+        title.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 10));
 
-.card{
-    background:#161b22;
-    padding:20px;
-    border-radius:10px;
-    text-align:center;
-    border:1px solid #30363d;
-}
+        JButton analyzeButton = new JButton("Analyze Code");
+        analyzeButton.setBackground(new Color(35, 134, 54));
+        analyzeButton.setForeground(Color.WHITE);
+        analyzeButton.setFont(new Font("Consolas", Font.BOLD, 16));
 
-.card h3{
-    color:#58a6ff;
-    margin-bottom:10px;
-    font-size:30px;
-}
+        topPanel.add(title, BorderLayout.WEST);
+        topPanel.add(analyzeButton, BorderLayout.EAST);
 
-/* FOOTER */
+        add(topPanel, BorderLayout.NORTH);
 
-.footer{
-    background:#161b22;
-    padding:10px;
-    text-align:center;
-    border-top:1px solid #30363d;
-    color:gray;
-}
+        // CODE AREA
 
-</style>
+        codeArea = new JTextArea();
+        codeArea.setBackground(new Color(13, 17, 23));
+        codeArea.setForeground(Color.WHITE);
+        codeArea.setCaretColor(Color.WHITE);
+        codeArea.setFont(new Font("Consolas", Font.PLAIN, 18));
 
-</head>
+        codeArea.setText(
+                "innt a = 10\n\n" +
+                "flot b = 5.5\n\n" +
+                "if(a > 5){\n" +
+                "    a = a + 1\n" +
+                "}"
+        );
 
-<body>
+        JScrollPane codeScroll = new JScrollPane(codeArea);
+        codeScroll.setPreferredSize(new Dimension(1400, 300));
 
-<!-- TOPBAR -->
+        add(codeScroll, BorderLayout.CENTER);
 
-<div class="topbar">
+        // OUTPUT PANEL
 
-    <h1>Professional Lexical Analyzer</h1>
+        JPanel outputPanel = new JPanel(new GridLayout(1, 4));
 
-    <div class="top-buttons">
+        // TOKEN TABLE
 
-        <!-- FILE UPLOAD -->
+        tokenModel = new DefaultTableModel();
+        tokenModel.addColumn("Line");
+        tokenModel.addColumn("Type");
+        tokenModel.addColumn("Value");
 
-        <label for="fileUpload" class="upload-btn">
-            Upload File
-        </label>
+        tokenTable = new JTable(tokenModel);
+        tokenTable.setBackground(new Color(22, 27, 34));
+        tokenTable.setForeground(Color.WHITE);
+        tokenTable.setGridColor(Color.GRAY);
+        tokenTable.setFont(new Font("Consolas", Font.PLAIN, 14));
+        tokenTable.setRowHeight(25);
 
-        <input type="file"
-               id="fileUpload"
-               accept=".txt,.c,.cpp,.java">
+        JScrollPane tokenScroll = new JScrollPane(tokenTable);
 
-        <!-- ANALYZE BUTTON -->
+        JPanel tokenPanel = new JPanel(new BorderLayout());
+        tokenPanel.setBackground(new Color(13, 17, 23));
 
-        <button onclick="analyze()">
-            Analyze Code
-        </button>
+        JLabel tokenTitle = new JLabel("Tokens");
+        tokenTitle.setForeground(new Color(88, 166, 255));
+        tokenTitle.setFont(new Font("Consolas", Font.BOLD, 24));
 
-    </div>
+        tokenPanel.add(tokenTitle, BorderLayout.NORTH);
+        tokenPanel.add(tokenScroll, BorderLayout.CENTER);
 
-</div>
+        // ERROR PANEL
 
-<!-- MAIN -->
+        errorArea = new JTextArea();
+        errorArea.setBackground(new Color(13, 17, 23));
+        errorArea.setForeground(new Color(255, 123, 114));
+        errorArea.setFont(new Font("Consolas", Font.PLAIN, 16));
 
-<div class="main">
+        JScrollPane errorScroll = new JScrollPane(errorArea);
 
-    <!-- SIDEBAR -->
+        JPanel errorPanel = new JPanel(new BorderLayout());
+        errorPanel.setBackground(new Color(13, 17, 23));
 
-    <div class="sidebar">
+        JLabel errorTitle = new JLabel("Errors");
+        errorTitle.setForeground(new Color(88, 166, 255));
+        errorTitle.setFont(new Font("Consolas", Font.BOLD, 24));
 
-        <h2>Compiler</h2>
+        errorPanel.add(errorTitle, BorderLayout.NORTH);
+        errorPanel.add(errorScroll, BorderLayout.CENTER);
 
-        <div class="tab">TOKENS</div>
-        <div class="tab">SYMBOL TABLE</div>
-        <div class="tab">ERRORS</div>
-        <div class="tab">STATISTICS</div>
+        // CORRECTED CODE PANEL
 
-    </div>
+        correctedArea = new JTextArea();
+        correctedArea.setBackground(new Color(22, 27, 34));
+        correctedArea.setForeground(new Color(88, 166, 255));
+        correctedArea.setFont(new Font("Consolas", Font.PLAIN, 16));
 
-    <!-- CONTENT -->
+        JScrollPane correctedScroll = new JScrollPane(correctedArea);
 
-    <div class="content">
+        JPanel correctedPanel = new JPanel(new BorderLayout());
+        correctedPanel.setBackground(new Color(13, 17, 23));
 
-        <!-- EDITOR -->
+        JLabel correctedTitle = new JLabel("Corrected Code");
+        correctedTitle.setForeground(new Color(88, 166, 255));
+        correctedTitle.setFont(new Font("Consolas", Font.BOLD, 24));
 
-        <div class="editor-section">
-            <div id="editor"></div>
-        </div>
+        correctedPanel.add(correctedTitle, BorderLayout.NORTH);
+        correctedPanel.add(correctedScroll, BorderLayout.CENTER);
 
-        <!-- OUTPUT -->
+        // STATISTICS PANEL
 
-        <div class="output-section">
+        JPanel statsPanel = new JPanel(new GridLayout(4, 1, 10, 10));
+        statsPanel.setBackground(new Color(13, 17, 23));
 
-            <!-- TOKEN TABLE -->
+        keywordLabel = createStatLabel("Keywords : 0");
+        identifierLabel = createStatLabel("Identifiers : 0");
+        numberLabel = createStatLabel("Numbers : 0");
+        operatorLabel = createStatLabel("Operators : 0");
 
-            <div class="panel">
+        statsPanel.add(keywordLabel);
+        statsPanel.add(identifierLabel);
+        statsPanel.add(numberLabel);
+        statsPanel.add(operatorLabel);
 
-                <h2>Tokens</h2>
+        JPanel statsContainer = new JPanel(new BorderLayout());
+        statsContainer.setBackground(new Color(13, 17, 23));
 
-                <table id="tokenTable">
+        JLabel statsTitle = new JLabel("Statistics");
+        statsTitle.setForeground(new Color(88, 166, 255));
+        statsTitle.setFont(new Font("Consolas", Font.BOLD, 24));
 
-                    <thead>
-                        <tr>
-                            <th>Line</th>
-                            <th>Type</th>
-                            <th>Value</th>
-                        </tr>
-                    </thead>
+        statsContainer.add(statsTitle, BorderLayout.NORTH);
+        statsContainer.add(statsPanel, BorderLayout.CENTER);
 
-                    <tbody></tbody>
+        // ADD PANELS
 
-                </table>
+        outputPanel.add(tokenPanel);
+        outputPanel.add(errorPanel);
+        outputPanel.add(correctedPanel);
+        outputPanel.add(statsContainer);
 
-            </div>
+        add(outputPanel, BorderLayout.SOUTH);
 
-            <!-- SYMBOL TABLE -->
+        // BUTTON ACTION
 
-            <div class="panel">
+        analyzeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                analyzeCode();
+            }
+        });
 
-                <h2>Symbol Table</h2>
-
-                <table id="symbolTable">
-
-                    <thead>
-                        <tr>
-                            <th>Identifier</th>
-                            <th>Type</th>
-                        </tr>
-                    </thead>
-
-                    <tbody></tbody>
-
-                </table>
-
-            </div>
-
-            <!-- ERRORS -->
-
-            <div class="panel">
-
-                <h2>Errors</h2>
-
-                <div id="errors"></div>
-
-            </div>
-
-            <!-- STATISTICS -->
-
-            <div class="panel">
-
-                <h2>Statistics</h2>
-
-                <div class="stats">
-
-                    <div class="card">
-                        <h3 id="keywordCount">0</h3>
-                        <p>Keywords</p>
-                    </div>
-
-                    <div class="card">
-                        <h3 id="identifierCount">0</h3>
-                        <p>Identifiers</p>
-                    </div>
-
-                    <div class="card">
-                        <h3 id="numberCount">0</h3>
-                        <p>Numbers</p>
-                    </div>
-
-                    <div class="card">
-                        <h3 id="operatorCount">0</h3>
-                        <p>Operators</p>
-                    </div>
-
-                </div>
-
-                <br>
-
-                <canvas id="chart"></canvas>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-<!-- FOOTER -->
-
-<div class="footer">
-    Mini Compiler Front-End Simulator | HTML CSS JavaScript
-</div>
-
-<script>
-
-/* MONACO EDITOR */
-
-let editor;
-
-require.config({
-    paths:{
-        vs:'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs'
-    }
-});
-
-require(['vs/editor/editor.main'], function(){
-
-    editor = monaco.editor.create(
-        document.getElementById('editor'),
-
-        {
-
-        value:
-`int a = 10;
-
-float b = 5.5;
-
-// sample condition
-
-if(a > 5){
-    a = a + 1;
-}`,
-
-        language:'cpp',
-        theme:'vs-dark',
-        automaticLayout:true
-
-    });
-
-});
-
-/* FILE UPLOAD */
-
-document.getElementById("fileUpload")
-.addEventListener("change", function(e){
-
-    let file = e.target.files[0];
-
-    if(file){
-
-        let reader = new FileReader();
-
-        reader.onload = function(event){
-
-            editor.setValue(event.target.result);
-
-        }
-
-        reader.readAsText(file);
-
+        setVisible(true);
     }
 
-});
+    // STAT LABEL
 
-/* ANALYZE FUNCTION */
+    public JLabel createStatLabel(String text) {
 
-function analyze(){
+        JLabel label = new JLabel(text, SwingConstants.CENTER);
 
-    let code = editor.getValue();
+        label.setOpaque(true);
+        label.setBackground(new Color(22, 27, 34));
+        label.setForeground(Color.WHITE);
+        label.setFont(new Font("Consolas", Font.BOLD, 18));
 
-    let tokenBody =
-        document.querySelector("#tokenTable tbody");
+        return label;
+    }
 
-    let symbolBody =
-        document.querySelector("#symbolTable tbody");
+    // ANALYZE CODE
 
-    let errors =
-        document.getElementById("errors");
+    public void analyzeCode() {
 
-    tokenBody.innerHTML = "";
-    symbolBody.innerHTML = "";
-    errors.innerHTML = "";
+        tokenModel.setRowCount(0);
+        errorArea.setText("");
+        correctedArea.setText("");
 
-    let patterns = [
+        keywordCount = 0;
+        identifierCount = 0;
+        numberCount = 0;
+        operatorCount = 0;
 
-        {type:"KEYWORD",
-         regex:/^(int|float|if|else|while|return)\b/},
+        String code = codeArea.getText();
 
-        {type:"NUMBER",
-         regex:/^\d+(\.\d+)?/},
+        String[] lines = code.split("\\n");
 
-        {type:"STRING",
-         regex:/^".*?"/},
+        Pattern keywordPattern = Pattern.compile("^(int|float|if|else|while|return)$");
+        Pattern numberPattern = Pattern.compile("^[0-9]+(\\.[0-9]+)?$");
+        Pattern identifierPattern = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
+        Pattern operatorPattern = Pattern.compile("^[+\\-*/=<>]+$");
 
-        {type:"COMMENT",
-         regex:/^(\/\/.*|\/\*[\s\S]*?\*\/)/},
+        StringBuilder correctedCode = new StringBuilder();
 
-        {type:"IDENTIFIER",
-         regex:/^[a-zA-Z_][a-zA-Z0-9_]*/},
+        for(int i = 0; i < lines.length; i++) {
 
-        {type:"OPERATOR",
-         regex:/^(==|!=|<=|>=|&&|\|\||[+\-*/=<>])/},
+            String line = lines[i];
+            String correctedLine = line;
 
-        {type:"DELIMITER",
-         regex:/^[;,(){}]/},
+            // AUTO CORRECTIONS
 
-        {type:"WHITESPACE",
-         regex:/^\s+/}
+            correctedLine = correctedLine.replace("innt", "int");
+            correctedLine = correctedLine.replace("flot", "float");
+            correctedLine = correctedLine.replace("retun", "return");
+            correctedLine = correctedLine.replace("whille", "while");
+            correctedLine = correctedLine.replace("pritnf", "printf");
 
-    ];
+            // MISSING SEMICOLON
 
-    let keywordCount = 0;
-    let identifierCount = 0;
-    let numberCount = 0;
-    let operatorCount = 0;
+            String trim = correctedLine.trim();
 
-    let identifiers = new Set();
+            if(!trim.isEmpty() &&
+               !trim.endsWith(";") &&
+               !trim.contains("{") &&
+               !trim.contains("}") &&
+               !trim.startsWith("if") &&
+               !trim.startsWith("while")) {
 
-    let lines = code.split("\n");
+                correctedLine += ";";
+            }
 
-    lines.forEach((line, lineNumber)=>{
+            correctedCode.append(correctedLine).append("\n");
 
-        let current = line;
+            // ERRORS
 
-        while(current.length > 0){
+            if(line.contains("innt")) {
+                errorArea.append("Invalid keyword 'innt' at line " + (i+1) + "\n");
+                errorArea.append("Suggestion : int\n\n");
+            }
 
-            let matchFound = false;
+            if(line.contains("flot")) {
+                errorArea.append("Invalid keyword 'flot' at line " + (i+1) + "\n");
+                errorArea.append("Suggestion : float\n\n");
+            }
 
-            for(let p of patterns){
+            if(!line.trim().isEmpty() &&
+               !line.trim().endsWith(";") &&
+               !line.contains("{") &&
+               !line.contains("}") &&
+               !line.trim().startsWith("if") &&
+               !line.trim().startsWith("while")) {
 
-                let match = current.match(p.regex);
+                errorArea.append("Missing semicolon ';' at line " + (i+1) + "\n\n");
+            }
 
-                if(match){
+            // TOKENIZATION
 
-                    let value = match[0];
+            String[] tokens = line.split("\\s+");
 
-                    if(
-                        p.type !== "WHITESPACE" &&
-                        p.type !== "COMMENT"
-                    ){
+            for(String token : tokens) {
 
-                        tokenBody.innerHTML += `
-                        <tr>
-                            <td>${lineNumber + 1}</td>
-                            <td>${p.type}</td>
-                            <td>${value}</td>
-                        </tr>
-                        `;
+                if(token.isEmpty())
+                    continue;
 
-                        if(p.type==="KEYWORD")
-                            keywordCount++;
+                token = token.replace(";", "");
+                token = token.replace("(", "");
+                token = token.replace(")", "");
+                token = token.replace("{", "");
+                token = token.replace("}", "");
 
-                        if(p.type==="IDENTIFIER")
-                            identifierCount++;
+                if(token.isEmpty())
+                    continue;
 
-                        if(p.type==="NUMBER")
-                            numberCount++;
+                if(keywordPattern.matcher(token).matches()) {
 
-                        if(p.type==="OPERATOR")
-                            operatorCount++;
-
-                        /* SYMBOL TABLE */
-
-                        if(
-                            p.type==="IDENTIFIER" &&
-                            !identifiers.has(value)
-                        ){
-
-                            identifiers.add(value);
-
-                            symbolBody.innerHTML += `
-                            <tr>
-                                <td>${value}</td>
-                                <td>Variable</td>
-                            </tr>
-                            `;
-                        }
-
-                    }
-
-                    current =
-                        current.slice(value.length);
-
-                    matchFound = true;
-
-                    break;
-
+                    tokenModel.addRow(new Object[]{i+1, "KEYWORD", token});
+                    keywordCount++;
                 }
 
+                else if(numberPattern.matcher(token).matches()) {
+
+                    tokenModel.addRow(new Object[]{i+1, "NUMBER", token});
+                    numberCount++;
+                }
+
+                else if(operatorPattern.matcher(token).matches()) {
+
+                    tokenModel.addRow(new Object[]{i+1, "OPERATOR", token});
+                    operatorCount++;
+                }
+
+                else if(identifierPattern.matcher(token).matches()) {
+
+                    tokenModel.addRow(new Object[]{i+1, "IDENTIFIER", token});
+                    identifierCount++;
+                }
             }
-
-            /* INVALID TOKEN */
-
-            if(!matchFound){
-
-                errors.innerHTML += `
-                <div class="error">
-                    Invalid Symbol '${current[0]}'
-                    at line ${lineNumber + 1}
-                </div>
-                `;
-
-                current = current.slice(1);
-
-            }
-
         }
 
-    });
+        correctedArea.setText(correctedCode.toString());
 
-    /* NO ERRORS */
+        if(errorArea.getText().isEmpty()) {
+            errorArea.setText("No Lexical Errors");
+        }
 
-    if(errors.innerHTML===""){
-        errors.innerHTML = "No Lexical Errors";
+        keywordLabel.setText("Keywords : " + keywordCount);
+        identifierLabel.setText("Identifiers : " + identifierCount);
+        numberLabel.setText("Numbers : " + numberCount);
+        operatorLabel.setText("Operators : " + operatorCount);
     }
 
-    /* UPDATE COUNTS */
+    // MAIN
 
-    document.getElementById("keywordCount")
-    .innerText = keywordCount;
+    public static void main(String[] args) {
 
-    document.getElementById("identifierCount")
-    .innerText = identifierCount;
-
-    document.getElementById("numberCount")
-    .innerText = numberCount;
-
-    document.getElementById("operatorCount")
-    .innerText = operatorCount;
-
-    /* CHART */
-
-    let ctx = document.getElementById("chart");
-
-    new Chart(ctx, {
-
-        type:'bar',
-
-        data:{
-
-            labels:[
-                'Keywords',
-                'Identifiers',
-                'Numbers',
-                'Operators'
-            ],
-
-            datasets:[{
-
-                label:'Token Count',
-
-                data:[
-                    keywordCount,
-                    identifierCount,
-                    numberCount,
-                    operatorCount
-                ]
-
-            }]
-        }
-
-    });
-
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new AILexicalAnalyzer();
+            }
+        });
+    }
 }
-
-</script>
-
-</body>
-</html>
